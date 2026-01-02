@@ -32,6 +32,7 @@ You can use the following environment variables to configure the script:
 - CHANGED_FILES_PATH: The path to the file containing the list of changed files (default: .github/outputs/all_modified_files.json)
 - ROOT_PACKAGE: The import path of the tested repository to add as a prefix to all paths of the changed files (optional)
 - TRIM_PACKAGE: Trim a prefix in the \"Impacted Packages\" column of the markdown report (optional)
+- LAST_SUCCESSFUL_RUN_ID: Explicit GitHub run ID to use for baseline coverage (optional)
 - SKIP_COMMENT: Skip creating or updating the pull request comment (default: false)
 "
 
@@ -99,10 +100,14 @@ rm -r "/tmp/gh-run-download-$GITHUB_RUN_ID"
 end_group
 
 start_group "Download code coverage results from target branch"
-LAST_SUCCESSFUL_RUN_ID=$(gh run list --status=success --branch="$TARGET_BRANCH" --workflow="$GITHUB_BASELINE_WORKFLOW" --event=push --json=databaseId --limit=1 -q '.[] | .databaseId')
-if [ -z "$LAST_SUCCESSFUL_RUN_ID" ]; then
-  echo "::error::No successful run found on the target branch"
-  exit 1
+if [ -z "${LAST_SUCCESSFUL_RUN_ID:-}" ]; then
+  LAST_SUCCESSFUL_RUN_ID=$(gh run list --status=success --branch="$TARGET_BRANCH" --workflow="$GITHUB_BASELINE_WORKFLOW" --event=push --json=databaseId --limit=1 -q '.[] | .databaseId')
+  if [ -z "$LAST_SUCCESSFUL_RUN_ID" ]; then
+    echo "::error::No successful run found on the target branch"
+    exit 1
+  fi
+else
+  echo "Using LAST_SUCCESSFUL_RUN_ID from environment: $LAST_SUCCESSFUL_RUN_ID"
 fi
 
 gh run download "$LAST_SUCCESSFUL_RUN_ID" --name="$COVERAGE_ARTIFACT_NAME" --dir="/tmp/gh-run-download-$LAST_SUCCESSFUL_RUN_ID"
