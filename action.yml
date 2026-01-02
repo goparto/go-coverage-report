@@ -55,6 +55,14 @@ inputs:
     default: ${{ github.workflow_ref }}
     required: false
 
+  baseline-coverage-run-id:
+    description: |
+      Explicit GitHub Actions run ID to use for baseline coverage instead of auto-detecting
+      the last successful run on the target branch. This is useful in mono-repo setups where
+      multiple Go projects share the same repository and you need to control which workflow
+      run provides the baseline coverage for each project.
+    required: false
+
 outputs:
   coverage_report:
     description: 'The generated coverage report in Markdown format.'
@@ -98,3 +106,4 @@ runs:
         ROOT_PACKAGE: ${{ inputs.root-package }}
         SKIP_COMMENT: ${{ inputs.skip-comment }}
         TRIM_PACKAGE: ${{ inputs.trim }}
+        LAST_SUCCESSFUL_RUN_ID: ${{ inputs.baseline-coverage-run-id }}
