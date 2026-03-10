@@ -30,3 +30,39 @@ func TestCoverage_ByPackage(t *testing.T) {
 	assert.EqualValues(t, 92, pkgCov.CoveredStmt)
 	assert.EqualValues(t, 10, pkgCov.MissedStmt)
 }
+
+func TestIsMockFile(t *testing.T) {
+	tests := []struct {
+		path     string
+		expected bool
+	}{
+		{"foo_mock.go", true},
+		{"github.com/foo/bar/baz_mock.go", true},
+		{"mock.go", false},
+		{"foo_mock_test.go", false},
+		{"foo.go", false},
+		{"foo_mocked.go", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.path, func(t *testing.T) {
+			assert.Equal(t, tt.expected, isMockFile(tt.path))
+		})
+	}
+}
+
+func TestCoverage_ExcludeMockFiles(t *testing.T) {
+	cov := New([]*Profile{
+		{FileName: "github.com/foo/bar/real.go", TotalStmt: 10, CoveredStmt: 8, MissedStmt: 2},
+		{FileName: "github.com/foo/bar/real_mock.go", TotalStmt: 5, CoveredStmt: 5, MissedStmt: 0},
+		{FileName: "github.com/foo/bar/other_mock.go", TotalStmt: 3, CoveredStmt: 1, MissedStmt: 2},
+	})
+
+	cov.ExcludeMockFiles()
+
+	assert.Len(t, cov.Files, 1)
+	assert.Contains(t, cov.Files, "github.com/foo/bar/real.go")
+	assert.EqualValues(t, 10, cov.TotalStmt)
+	assert.EqualValues(t, 8, cov.CoveredStmt)
+	assert.EqualValues(t, 2, cov.MissedStmt)
+}
